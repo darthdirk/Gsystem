@@ -18,7 +18,7 @@ DB = $(TOOLCHAIN_ROOT)arm-none-eabi-gdb
 # Project sources
 SRC_FILES = $(wildcard $(SRC_DIR)*.c) $(wildcard $(SRC_DIR)*/*.c)
 ASM_FILES = $(wildcard $(SRC_DIR)*.s) $(wildcard $(SRC_DIR)*/*.s)
-LD_SCRIPT = $(SRC_DIR)/device/STM32L452RETXP_FLASH.ld $(SRC_DIR)/device/STM32L452RETXP_RAM.ld
+LD_SCRIPT = $(SRC_DIR)/device/STM32L452RETXP_FLASH.ld
 
 # Project includes
 INCLUDES   = -I$(INC_DIR)
