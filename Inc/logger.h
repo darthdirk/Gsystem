@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include "gpio.h"
 #include "rtc.h"
-#include "spi.h"
 #include "battery.h"
 #include "version.h"
 #include "string.h"

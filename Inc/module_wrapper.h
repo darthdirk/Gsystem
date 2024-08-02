@@ -20,7 +20,6 @@ typedef struct Sensor* SensorHandle;
 typedef struct USBInterface* USBHandle;
 typedef struct SPI* SPIHandle;
 typedef struct RealTimeClock* RTCHandle;
-typedef struct AES256* AESHandle;
 typedef struct Logger* LoggerHandle;
 typedef struct I2C_Pot* I2CHandle;
 
@@ -42,7 +41,6 @@ NotificationHandle notification_create();
 USBHandle usb_create();
 SPIHandle spi_create();
 RTCHandle rtc_create();
-AESHandle aes_create();
 LoggerHandle logger_create();
 I2CHandle i2c_create();
 
