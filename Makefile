@@ -1,64 +1,98 @@
--include ../makefile.init
+# Path you your toolchain installation, leave empty if already in system PATH
+TOOLCHAIN_ROOT =
 
-RM := rm -rf
+# Path to the STM32 codebase, make sure to update the submodule to get the code
+VENDOR_ROOT = ./STM32CubeL4/
 
-# define src dir and files
-SRC_DIRS := Src Drivers/STM32L4xx_HAL_Driver/Src /Startup
-SRCS := $(wildcard $(addsuffix /*.c,$(SRC_DIRS)))
-OBJS := $(SRCS:.c=.o)
+###############################################################################
 
-# Define the include directories
-INC_DIRS := Inc Drivers/STM32L4xx_HAL_Driver/Inc Drivers/STM32L4xx_HAL_Driver/Inc/Legacy Drivers/CMSIS/Device/ST/STM32L4xx/Include Drivers/CMSIS/Include 
-INCLUDES := $(addprefix -I,$(INC_DIRS))
+# Project specific
+TARGET = main.elf
+SRC_DIR = Src/
+INC_DIR = Inc/
 
-# Define the preprocessor definitions
-DEFINES := -DDEBUG -DUSE_HAL_DRIVER -DSTM32L452xx
+# Toolchain
+CC = $(TOOLCHAIN_ROOT)arm-none-eabi-gcc
+DB = $(TOOLCHAIN_ROOT)arm-none-eabi-gdb
 
-# Compiler and linker settings
-CC := arm-none-eabi-gcc
-CFLAGS := -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wall -Wextra -O2 $(INCLUDES) $(DEFINES)
-LDFLAGS := -T"/home/dirk/Gsystem/STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="Gsystem.map" -Wl,--gc-sections -static --specs=nano.specs -Wl,--start-group -lc -lm -Wl,--end-group
+# Project sources
+SRC_FILES = $(wildcard $(SRC_DIR)*.c) $(wildcard $(SRC_DIR)*/*.c)
+ASM_FILES = $(wildcard $(SRC_DIR)*.s) $(wildcard $(SRC_DIR)*/*.s)
+LD_SCRIPT = $(SRC_DIR)/device/STM32L452RETXP_FLASH.ld $(SRC_DIR)/device/STM32L452RETXP_RAM.ld
 
-# All Target
-all: main-build
+# Project includes
+INCLUDES   = -I$(INC_DIR)
+INCLUDES  += -I$(INC_DIR)
 
-# Main-build Target
-main-build: Gsystem.elf secondary-outputs
+# Vendor sources: Note that files in "Templates" are normally copied into project for customization,
+# but that is not necessary for this simple project.
+ASM_FILES += $(VENDOR_ROOT)Drivers/CMSIS/Device/ST/STM32L4xx/Source/Templates/gcc/startup_stm32l452xx.s
+SRC_FILES += $(VENDOR_ROOT)Drivers/CMSIS/Device/ST/STM32L4xx/Source/Templates/system_stm32l4xx.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/BSP/STM32L4xx_Nucleo/stm32l4xx_nucleo.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_cortex.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_exti.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_flash.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_gpio.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr_ex.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc_ex.c
+SRC_FILES += $(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.c
 
-# Tool invocations
-Gsystem.elf: $(OBJS) $(USER_OBJS) /home/dirk/Gsystem/STM32L452RETXP_FLASH.ld
-	$(CC) -o $@ $(OBJS) $(USER_OBJS) $(LDFLAGS)
-	@echo 'Finished building target: $@'
-	@echo ' '
+# Vendor includes
+INCLUDES += -I$(VENDOR_ROOT)Drivers/CMSIS/Core/Include
+INCLUDES += -I$(VENDOR_ROOT)Drivers/CMSIS/Device/ST/STM32L4xx/Include
+INCLUDES += -I$(VENDOR_ROOT)Drivers/STM32L4xx_HAL_Driver/Inc
+INCLUDES += -I$(VENDOR_ROOT)Drivers/BSP/STM32L4xx_Nucleo
 
-# Compile source files into object files
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+# Compiler Flags
+CFLAGS  = -g -O0 -Wall -Wextra -Warray-bounds -Wno-unused-parameter
+CFLAGS += -mcpu=cortex-m7 -mthumb -mlittle-endian -mthumb-interwork
+CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+CFLAGS += -DSTM32L452xx -DUSE_STM32L4xx_NUCLEO -DUSE_HAL_DRIVER
+CFLAGS += $(INCLUDES)
 
-default.size.stdout: Gsystem.elf
-	arm-none-eabi-size Gsystem.elf
-	@echo 'Finished building: $@'
-	@echo ' '
+# Linker Flags
+LFLAGS = -Wl,--gc-sections -Wl,-T$(LD_SCRIPT) --specs=rdimon.specs
 
-Gsystem.list: Gsystem.elf
-	arm-none-eabi-objdump -h -S Gsystem.elf > $@
-	@echo 'Finished building: $@'
-	@echo ' '
+###############################################################################
 
-# Other Targets
+# This does an in-source build. An out-of-source build that places all object
+# files into a build directory would be a better solution, but the goal was to
+# keep this file very simple.
+
+CXX_OBJS = $(SRC_FILES:.c=.o)
+ASM_OBJS = $(ASM_FILES:.s=.o)
+ALL_OBJS = $(ASM_OBJS) $(CXX_OBJS)
+
+.PHONY: clean gdb-server_stlink gdb-server_openocd gdb-client
+
+all: $(TARGET)
+
+# Compile
+$(CXX_OBJS): %.o: %.c
+$(ASM_OBJS): %.o: %.s
+$(ALL_OBJS):
+	@echo "[CC] $@"
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+# Link
+%.elf: $(ALL_OBJS)
+	@echo "[LD] $@"
+	@$(CC) $(CFLAGS) $(LFLAGS) $(ALL_OBJS) -o $@
+
+# Clean
 clean:
-	-$(RM) $(OBJS) Gsystem.elf Gsystem.list Gsystem.map default.size.stdout
-	-@echo ' '
+	@rm -f $(ALL_OBJS) $(TARGET)
 
-secondary-outputs: default.size.stdout Gsystem.list
+# Debug
+gdb-server_stlink:
+	st-util
 
-fail-specified-linker-script-missing:
-	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'
-	@exit 2
+gdb-server_openocd:
+	openocd -f ./openocd.cfg
 
-warn-no-linker-script-specified:
-	@echo 'Warning: No linker script specified. Check the linker settings in the build configuration.'
-
-.PHONY: all clean dependents main-build fail-specified-linker-script-missing warn-no-linker-script-specified
-
--include ../makefile.targets
+gdb-client: $(TARGET)
+	$(DB) -tui $(TARGET)
