@@ -3,8 +3,10 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
-                "/usr/include/criterion"
+                "${workspaceFolder}/Inc",
+                "/usr/include/criterion",
+                "${workspaceFolder}/STM32CubeL4/**",
+                "${workspaceFolder}/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

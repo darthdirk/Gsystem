@@ -2,6 +2,7 @@
 #define INC_ADC_H_
 
 #include "stm32l4xx_hal.h"
+#include <stdint.h>
 
 class ADC {
 
